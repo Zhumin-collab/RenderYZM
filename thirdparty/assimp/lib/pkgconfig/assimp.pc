@@ -1,9 +1,0 @@
-libdir=D:/opengl_envir/assimp-5.2.4/assimp-5.2.4/assimp/lib
-includedir=D:/opengl_envir/assimp-5.2.4/assimp-5.2.4/assimp/include
-
-Name: Assimp
-Description: Import various well-known 3D model formats in an uniform manner.
-Version: 5.2.0
-Libs: -L${libdir} -lassimp
-Libs.private:  
-Cflags: -I${includedir}

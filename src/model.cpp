@@ -97,6 +97,7 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene)
         vector.y = mesh->mVertices[i].y;
         vector.z = mesh->mVertices[i].z;
         vertex.Position = vector;
+
         // normals
         vector.x = mesh->mNormals[i].x;
         vector.y = mesh->mNormals[i].y;
@@ -114,6 +115,7 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene)
         }
         else
             vertex.TexCoords = glm::vec2(0.0f, 0.0f);
+
         // tangent
         if(mesh->mTangents)
         {
@@ -122,6 +124,7 @@ Mesh Model::processMesh(aiMesh *mesh, const aiScene *scene)
             vector.z = mesh->mTangents[i].z;
             vertex.Tangent = vector;
         }
+
         // bitangent
         if(mesh->mBitangents)
         {

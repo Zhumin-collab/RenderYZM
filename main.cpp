@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#define STB_IMAGE_IMPLEMENTATION
 
 #include "shader.h"
 #include "camera.h"
@@ -17,11 +18,11 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
 
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 1080;
+const unsigned int SCR_HEIGHT = 900;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(0.0f, 0.0f, 10.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -61,9 +62,9 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
 
-    Shader ourShader("shader/1.model_loading.vs", "shader1.model_loading.fs");
+    Shader ourShader("shaders/1.model_loading.vs", "shaders/1.model_loading.fs");
 
-    Model ourModel("asset/nanosuit/nanosuit.obj");
+    Model ourModel("assets/backpack/backpack.obj");
 
     while(!glfwWindowShouldClose(window))
     {
@@ -136,5 +137,5 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    camera.ProcessMouseScroll(yoffset);
+    camera.ProcessMouseScroll(static_cast<float>(yoffset));
 }
