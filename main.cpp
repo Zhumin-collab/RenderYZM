@@ -113,31 +113,28 @@ int main()
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        lightShader.use();
         modelShader.use();
-
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
         modelShader.setMat4("projection", projection);
         modelShader.setMat4("view", view);
-        lightShader.setMat4("projection", projection);
-        lightShader.setMat4("view", view);
-
-
 
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
         modelShader.setMat4("model", model);
-
-        lightShader.setMat4("model", model);
         
         modelShader.setVec3("lightColor", lightColor);
         modelShader.setVec3("lightPos", lightPos);
         modelShader.setVec3("viewPos", camera.Position);
 
+        ourModel.Draw(modelShader) ;
+
+        lightShader.use();
+        lightShader.setMat4("projection", projection);
+        lightShader.setMat4("view", view);
+        lightShader.setMat4("model", model);
         light.Draw(lightShader);
-        ourModel.Draw(modelShader);
 
         glfwPollEvents();
 
