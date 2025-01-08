@@ -27,9 +27,10 @@ target_include_directories(LearnOpenGL PRIVATE "third_party/GLFW/include")
 target_include_directories(LearnOpenGL PRIVATE "third_party/glm")
 target_include_directories(LearnOpenGL PRIVATE "third_party/stb/include")
 target_include_directories(LearnOpenGL PRIVATE "third_party/assimp/include")
+target_include_directories(LearnOpenGL PRIVATE "third_party/imgui")
 
 # Add the source files
-file(GLOB_RECURSE SOURCES "src/*.cpp" "src/*.h")
+file(GLOB SOURCES "src/*.cpp" "src/*.h" "third_party/imgui/*.cpp" "third_party/imgui/*.h")
 target_sources(LearnOpenGL PRIVATE
     ${SOURCES}
     "third_party/GLAD/src/glad.c"
