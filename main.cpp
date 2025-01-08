@@ -28,7 +28,7 @@ const unsigned int SCR_HEIGHT = 900;
 bool cursorToggled = false;
 
 // camera
-Camera camera(glm::vec3(0.0f, 10.0f, 40.0f));
+Camera camera(glm::vec3(0.0f, 20.0f, 40.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -95,7 +95,7 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
 
-    Shader modelShader("shaders/1.model_loading.vs", "shaders/1.model_loading.fs");
+    Shader modelShader("shaders/model.vs", "shaders/model.fs");
     Model ourModel("assets/nanosuit/nanosuit.obj");
 
     Shader lightShader("shaders/light.vs", "shaders/light.fs");
@@ -129,14 +129,15 @@ int main()
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
         modelShader.setMat4("model", model);
+
         lightShader.setMat4("model", model);
         
-        //modelShader.setVec3("lightColor", lightColor);
-        //modelShader.setVec3("lightPos", lightPos);
-        //modelShader.setVec3("viewPos", camera.Position);
+        modelShader.setVec3("lightColor", lightColor);
+        modelShader.setVec3("lightPos", lightPos);
+        modelShader.setVec3("viewPos", camera.Position);
 
         light.Draw(lightShader);
-        // ourModel.Draw(modelShader);
+        ourModel.Draw(modelShader);
 
         glfwPollEvents();
 
