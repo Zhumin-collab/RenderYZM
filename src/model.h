@@ -34,7 +34,7 @@ class Model
 
     // constructor, expects a filepath to a 3D model.
     Model(std::string const &path, bool gamma = false);
-
+    Model(){};
     // draws the model, and thus all its meshes
     void Draw(Shader &shader);
 

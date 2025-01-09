@@ -44,19 +44,26 @@ static bool cursorEnabled = false;
 glm::vec3 lightPos(0.f,10.f, 10.f);
 glm::vec3 lightColor(1.0f, 1.0f, 1.0f);
 
-int main()
+// imgui
+bool show_demo_window = true;
+bool show_another_window = false;
+
+// window
+GLFWwindow* window = NULL;
+
+// model
+Model ourModel;
+void init()
 {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
+    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", NULL, NULL);
     if (window == NULL)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
-        return -1;
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -65,7 +72,11 @@ int main()
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    // set imgui
+}
+
+void imgui_init()
+{
+        // set imgui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -79,11 +90,46 @@ int main()
     ImGui_ImplGlfw_InitForOpenGL(window, true);
 
     ImGui_ImplOpenGL3_Init("#version 330");
+}
 
+void imgui_render()
+{
+    // Start the Dear ImGui frame
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    {
+        static float f = 0.0f;
+        static int counter = 0;
+
+        ImGui::Begin("Control Panel");                          // Create a window called "Hello, world!" and append into it.
+        
+        static const char* items[] = {"nanosuit","backpack"};
+        static int item_current = 0;
+        if(ImGui::Combo("Model", &item_current, items, IM_ARRAYSIZE(items)))
+        {
+            ourModel = Model("assets/" + std::string(items[item_current])+"/"+std::string(items[item_current])+".obj");
+        }
+
+        ImGui::DragFloat3("camera position", (float*)&camera.Position);
+        ImGui::ColorEdit3("light color", (float*)&lightColor);
+        
+        ImGui::DragFloat3("light position", (float*)&lightPos);
+        ImGui::SameLine();
+
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+        ImGui::End();
+    }
+
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+int main()
+{    
+    init();
     // Imgui State
-    bool show_demo_window = true;
-    bool show_another_window = false;
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    imgui_init();
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
@@ -95,8 +141,8 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
 
+    ourModel = Model("assets/nanosuit/nanosuit.obj");
     Shader modelShader("shaders/model.vs", "shaders/model.fs");
-    Model ourModel("assets/nanosuit/nanosuit.obj");
 
     Shader lightShader("shaders/light.vs", "shaders/light.fs");
 
@@ -131,41 +177,21 @@ int main()
         ourModel.Draw(modelShader) ;
 
         lightShader.use();
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, lightPos);
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
+        modelShader.setMat4("model", model);
         lightShader.setMat4("projection", projection);
         lightShader.setMat4("view", view);
         lightShader.setMat4("model", model);
+
+        lightShader.setVec3("lightColor", lightColor);
+        
         light.Draw(lightShader);
 
         glfwPollEvents();
 
-        // Start the Dear ImGui frame
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-        {
-            static float f = 0.0f;
-            static int counter = 0;
-
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-            ImGui::Checkbox("Another Window", &show_another_window);
-
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-            if(ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-				counter++;
-            ImGui::SameLine();
-			ImGui::Text("counter = %d", counter);
-
-			ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-			ImGui::End();
-        }
-
-        ImGui::Render();
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        imgui_render(); 
         glfwSwapBuffers(window);
 
     }
