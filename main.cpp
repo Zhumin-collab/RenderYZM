@@ -53,6 +53,13 @@ GLFWwindow* window = NULL;
 
 // model
 Model ourModel;
+
+// blinn phong
+bool blinn_phong = true;
+
+// normal mapping
+bool normalMapping = false;
+
 void init()
 {
     glfwInit();
@@ -98,7 +105,6 @@ void imgui_render()
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-
     {
         static float f = 0.0f;
         static int counter = 0;
@@ -116,7 +122,9 @@ void imgui_render()
         ImGui::ColorEdit3("light color", (float*)&lightColor);
         
         ImGui::DragFloat3("light position", (float*)&lightPos);
+        ImGui::Checkbox("blinn phong", &blinn_phong);
         ImGui::SameLine();
+        ImGui::Checkbox("normal mapping", &normalMapping);
 
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
         ImGui::End();
@@ -148,6 +156,11 @@ int main()
 
     Model light("assets/light/light.obj");
 
+    Model floor("assets/floor/floor.obj");
+    Shader floorShader("shaders/model.vs", "shaders/model.fs");
+    
+    Shader normalShader("shaders/normal.vs", "shaders/normal.fs", "shaders/normal.gs");
+
     while (!glfwWindowShouldClose(window))
     {
         float currentFrame = glfwGetTime();
@@ -173,8 +186,31 @@ int main()
         modelShader.setVec3("lightColor", lightColor);
         modelShader.setVec3("lightPos", lightPos);
         modelShader.setVec3("viewPos", camera.Position);
+        modelShader.setBool("blinn", blinn_phong);
 
         ourModel.Draw(modelShader) ;
+
+        floorShader.use();
+        floorShader.setMat4("projection", projection);
+        floorShader.setMat4("view", view);
+        floorShader.setMat4("model", model);
+
+        floorShader.setVec3("lightColor", lightColor);
+        floorShader.setVec3("lightPos", lightPos);
+        floorShader.setVec3("viewPos", camera.Position);
+        floorShader.setBool("blinn", blinn_phong);
+        floor.Draw(floorShader) ;
+
+        if(normalMapping)
+        {
+            normalShader.use();
+            normalShader.setMat4("projection", projection);
+            normalShader.setMat4("view", view);
+            normalShader.setMat4("model", model);
+            floor.Draw(normalShader);
+            ourModel.Draw(normalShader);
+        }
+        
 
         lightShader.use();
         model = glm::mat4(1.0f);
@@ -184,10 +220,9 @@ int main()
         lightShader.setMat4("projection", projection);
         lightShader.setMat4("view", view);
         lightShader.setMat4("model", model);
-
         lightShader.setVec3("lightColor", lightColor);
-        
         light.Draw(lightShader);
+
 
         glfwPollEvents();
 
