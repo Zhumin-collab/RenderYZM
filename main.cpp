@@ -60,6 +60,10 @@ bool blinn_phong = true;
 // normal mapping
 bool normalMapping = false;
 
+// depth map
+unsigned int depthMapFBO;
+unsigned int depthMap;
+
 void init()
 {
     glfwInit();
@@ -133,6 +137,27 @@ void imgui_render()
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
+
+void initDepthMap()
+{
+    glGenFramebuffers(1, &depthMapFBO);
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    GLfloat borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 int main()
 {    
     init();
@@ -146,7 +171,6 @@ int main()
     }
 
     stbi_set_flip_vertically_on_load(true);
-
     glEnable(GL_DEPTH_TEST);
 
     ourModel = Model("assets/nanosuit/nanosuit.obj");
@@ -157,9 +181,15 @@ int main()
     Model light("assets/light/light.obj");
 
     Model floor("assets/floor/floor.obj");
-    Shader floorShader("shaders/model.vs", "shaders/model.fs");
     
     Shader normalShader("shaders/normal.vs", "shaders/normal.fs", "shaders/normal.gs");
+
+
+    Shader depthShader("shaders/depthShader.vs", "shaders/depthShader.fs");
+
+    Shader debugShader("shaders/debug.vs", "shaders/debug.fs");
+    initDepthMap();
+
 
     while (!glfwWindowShouldClose(window))
     {
@@ -172,13 +202,41 @@ int main()
         glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        // depth map
+        glm::mat4 lightProjection, lightView;
+        glm::mat4 lightSpaceMatrix;
+        float nerfPlane = -10.0f, farPlane = 10.0f;
+        lightProjection = glm::perspective(glm::radians(90.f), 1.0f, 0.1f, 100.0f);;
+        lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+        lightSpaceMatrix = lightProjection * lightView;
+        glm::mat4 model = glm::mat4(1.0f);
+
+        depthShader.use();
+        depthShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        depthShader.setMat4("model", model);
+        glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+            glClear(GL_DEPTH_BUFFER_BIT);
+            glActiveTexture(GL_TEXTURE12);
+            glCullFace(GL_FRONT);
+            ourModel.Draw(depthShader);
+            floor.Draw(depthShader);
+            glCullFace(GL_BACK);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // reset viewport
+        glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // render
         modelShader.use();
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
         modelShader.setMat4("projection", projection);
         modelShader.setMat4("view", view);
 
-        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
         modelShader.setMat4("model", model);
@@ -187,19 +245,13 @@ int main()
         modelShader.setVec3("lightPos", lightPos);
         modelShader.setVec3("viewPos", camera.Position);
         modelShader.setBool("blinn", blinn_phong);
+        modelShader.setMat4("lightSpaceMatrix", lightSpaceMatrix);
+        glActiveTexture(GL_TEXTURE12);
+        modelShader.setInt("shadowMap", 12);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
 
         ourModel.Draw(modelShader) ;
-
-        floorShader.use();
-        floorShader.setMat4("projection", projection);
-        floorShader.setMat4("view", view);
-        floorShader.setMat4("model", model);
-
-        floorShader.setVec3("lightColor", lightColor);
-        floorShader.setVec3("lightPos", lightPos);
-        floorShader.setVec3("viewPos", camera.Position);
-        floorShader.setBool("blinn", blinn_phong);
-        floor.Draw(floorShader) ;
+        floor.Draw(modelShader) ;
 
         if(normalMapping)
         {
@@ -210,7 +262,6 @@ int main()
             floor.Draw(normalShader);
             ourModel.Draw(normalShader);
         }
-        
 
         lightShader.use();
         model = glm::mat4(1.0f);
@@ -222,8 +273,7 @@ int main()
         lightShader.setMat4("model", model);
         lightShader.setVec3("lightColor", lightColor);
         light.Draw(lightShader);
-
-
+        
         glfwPollEvents();
 
         imgui_render(); 
